@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptBlast — Settings</title>
+  <link rel="stylesheet" href="../styles/options.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <header class="header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#6c8aff" stroke-width="2"/>
+          <path d="M8 12l3 3 5-6" stroke="#6c8aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <h1>PromptBlast</h1>
+          <p class="subtitle">Settings & Customization</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Section: AI Services ───────────────────────── -->
+    <section class="section">
+      <h2>AI Services</h2>
+      <p class="section-desc">Choose which AI services to include when multicasting. Drag to reorder priority.</p>
+      <div id="serviceList" class="service-list">
+        <!-- Dynamically populated -->
+      </div>
+    </section>
+
+    <!-- ── Section: Behavior ──────────────────────────── -->
+    <section class="section">
+      <h2>Behavior</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Auto-submit prompts</p>
+          <p class="setting-desc">Automatically press Enter after filling the prompt into each AI</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="autoSubmit" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Group tabs together</p>
+          <p class="setting-desc">Organize all AI tabs into a single Chrome tab group</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="groupTabs" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Page load delay</p>
+          <p class="setting-desc">Extra time (ms) to wait after page loads before typing. Increase if queries aren't being filled.</p>
+        </div>
+        <div class="input-group">
+          <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
+          <span class="input-suffix">ms</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section: Keyboard Shortcut ─────────────────── -->
+    <section class="section">
+      <h2>Keyboard Shortcut</h2>
+      <p class="section-desc">
+        Chrome manages extension shortcuts globally. To change the hotkey:
+      </p>
+      <ol class="shortcut-steps">
+        <li>Open <code>chrome://extensions/shortcuts</code></li>
+        <li>Find <strong>PromptBlast</strong> in the list</li>
+        <li>Click the pencil icon next to "Open PromptBlast popup"</li>
+        <li>Press your desired key combination</li>
+      </ol>
+      <button id="openShortcuts" class="btn-secondary">
+        Open Shortcut Settings ↗
+      </button>
+    </section>
+
+    <!-- ── Section: Data ──────────────────────────────── -->
+    <section class="section">
+      <h2>Data</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Clear prompt history</p>
+          <p class="setting-desc">Remove all saved recent prompts</p>
+        </div>
+        <button id="clearHistory" class="btn-danger">Clear</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Reset all settings</p>
+          <p class="setting-desc">Restore everything to defaults</p>
+        </div>
+        <button id="resetAll" class="btn-danger">Reset</button>
+      </div>
+    </section>
+
+    <!-- ── Toast ──────────────────────────────────────── -->
+    <div id="toast" class="toast hidden">Settings saved</div>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
