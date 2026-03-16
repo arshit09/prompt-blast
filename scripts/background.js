@@ -40,17 +40,17 @@ const AI_SERVICES = [
     inputType: "prosemirror",
     selector: "#prompt-textarea",
     submitType: "button",
-    buttonSel: '[data-testid="send-button"]',
+    buttonSel: '#composer-submit-button, [data-testid="send-button"]',
     waitMs: 2500,
   },
   {
     id: "claude",
     name: "Claude",
     url: "https://claude.ai/new",
-    inputType: "contenteditable",
-    selector: '[contenteditable="true"]',
+    inputType: "prosemirror",
+    selector: 'div[contenteditable="true"].ProseMirror, [contenteditable="true"]',
     submitType: "button",
-    buttonSel: 'button[aria-label="Send Message"]',
+    buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button:has(path[d^="M208.49"])',
     waitMs: 2500,
   },
   {
@@ -85,9 +85,10 @@ const AI_SERVICES = [
     id: "perplexity",
     name: "Perplexity",
     url: "https://www.perplexity.ai/",
-    inputType: "textarea",
-    selector: 'textarea[placeholder*="Ask"]',
-    submitType: "enter",
+    inputType: "contenteditable",
+    selector: "#ask-input",
+    submitType: "button",
+    buttonSel: 'button[aria-label="Submit"]',
     waitMs: 2500,
   },
   {
@@ -113,9 +114,10 @@ const AI_SERVICES = [
  */
 async function getSettings() {
   const defaults = {
-    enabledServices: ["chatgpt", "claude", "gemini", "copilot", "deepseek"],
+    enabledServices: ["chatgpt", "claude", "gemini", "copilot", "deepseek", "perplexity", "poe"],
     autoSubmit: true,
     groupTabs: true,
+    cycleTabs: false,
     delayMs: 2000,
   };
 
@@ -128,6 +130,40 @@ async function getSettings() {
 // The popup sends { action: "multicast", query: "..." }
 // We also handle { action: "getServices" } for the popup/options
 
+// ── Action Click Listener ────────────────────────────────────
+// When the extension icon is clicked, tell the content script to
+// toggle the UI overlay. If the content script isn't found (e.g.
+// on an already-open tab after install), we try to inject it.
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab.id) return;
+
+  // Skip internal browser pages
+  if (tab.url?.startsWith("chrome://") || tab.url?.startsWith("edge://") || tab.url?.startsWith("about:")) {
+    return;
+  }
+
+  try {
+    await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
+  } catch (err) {
+    // If connection fails, the script might not be injected yet
+    if (err.message.includes("Could not establish connection")) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["scripts/content.js"]
+        });
+        // Try again after injection
+        await chrome.tabs.sendMessage(tab.id, { action: "toggleOverlay" });
+      } catch (injectErr) {
+        console.warn("[PromptBlast] Manual injection failed:", injectErr);
+      }
+    } else {
+      console.error("[PromptBlast] Toggle overlay failed:", err);
+    }
+  }
+});
+
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "getServices") {
     // Return the full service registry so popup/options can render it
@@ -136,7 +172,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.action === "multicast") {
-    handleMulticast(message.query);
+    console.log("[PromptBlast] Starting multicast for query:", message.query);
+    // We await this so the service worker stays alive and we can report completion
+    handleMulticast(message.query).then((results) => {
+      console.log("[PromptBlast] Multicast completed.");
+    });
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.action === "openOptions") {
+    chrome.runtime.openOptionsPage();
     sendResponse({ ok: true });
     return true;
   }
@@ -188,21 +234,51 @@ async function handleMulticast(query) {
     }
   }
 
-  // For each tab, wait for it to load, then inject the query
-  tabs.forEach((tab, index) => {
-    const service = targets[index];
-    waitForTabLoad(tab.id).then(() => {
-      // Add configurable delay to let SPA frameworks hydrate
-      const delay = settings.delayMs ?? service.waitMs ?? 2000;
-      setTimeout(() => {
-        injectQuery(tab.id, service, query, settings.autoSubmit);
-      }, delay);
-    });
-  });
-
-  // Activate the first tab so the user sees something happening
+  // Handle tab activation & injection
   if (tabs.length > 0) {
+    console.log(`[PromptBlast] Target services: ${targets.map(t => t.name).join(", ")}`);
+    console.log(`[PromptBlast] Cycle Tabs setting: ${settings.cycleTabs}`);
+
+    // 1. Activate the first tab immediately so the user knows work has started
     chrome.tabs.update(tabs[0].id, { active: true });
+
+    // 2. If Cycle Tabs is enabled, tour through all tabs FIRST to wake them up
+    if (settings.cycleTabs) {
+      console.log(`[PromptBlast] Starting initial tab tour for ${tabs.length} tabs to wake them up...`);
+      for (const tab of tabs) {
+        try {
+          await chrome.tabs.update(tab.id, { active: true, highlighted: true });
+          await chrome.windows.update(tab.windowId, { focused: true });
+          // Brief pause to allow the tab to wake up and Chrome to prioritize it
+          await new Promise((r) => setTimeout(r, 800));
+        } catch (err) {
+          console.error(`[PromptBlast] Failed to activate tab ${tab.id}:`, err);
+        }
+      }
+      console.log("[PromptBlast] Initial tour complete, returning focus to first tab.");
+      chrome.tabs.update(tabs[0].id, { active: true });
+    } else {
+      console.log("[PromptBlast] Cycling disabled, skipping tour.");
+    }
+
+    // 3. Fire all injections in parallel and track their completion.
+    const injectionPromises = tabs.map((tab, index) => {
+      const service = targets[index];
+      return waitForTabLoad(tab.id)
+        .then(() => ensureContentScript(tab.id))
+        .then(() => {
+          console.log(`[PromptBlast] Injecting into ${service.name}...`);
+          return injectQuery(tab.id, service, query, settings.autoSubmit);
+        })
+        .catch((err) => {
+          console.warn(`[PromptBlast] Pipeline failed for ${service.name}:`, err);
+        });
+    });
+
+    // 4. Wait until every tab has finished its work (keeps the service worker alive).
+    console.log("[PromptBlast] Waiting for all tabs to process query and submit...");
+    await Promise.allSettled(injectionPromises);
+    console.log("[PromptBlast] All background processing complete.");
   }
 }
 
@@ -213,13 +289,14 @@ async function handleMulticast(query) {
  */
 function waitForTabLoad(tabId) {
   return new Promise((resolve) => {
-    const TIMEOUT = 30_000;
+    const TIMEOUT = 10_000; // Reduced to 10s to prevent tour from hanging
     let resolved = false;
 
     const timer = setTimeout(() => {
       if (!resolved) {
+        console.warn(`[PromptBlast] Tab ${tabId} load timed out after 10s`);
         resolved = true;
-        resolve(); // proceed anyway after timeout
+        resolve();
       }
     }, TIMEOUT);
 
@@ -236,7 +313,6 @@ function waitForTabLoad(tabId) {
 
     chrome.tabs.onUpdated.addListener(listener);
 
-    // In case the tab is already complete (cached page)
     chrome.tabs.get(tabId, (tab) => {
       if (tab?.status === "complete" && !resolved) {
         chrome.tabs.onUpdated.removeListener(listener);
@@ -250,30 +326,61 @@ function waitForTabLoad(tabId) {
 
 
 /**
- * Sends a message to the content script running in `tabId`,
- * telling it to fill in and (optionally) submit the query.
+ * Ensures the content script is injected into a tab before messaging.
+ * Silently succeeds if already injected.
+ */
+async function ensureContentScript(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["scripts/content.js"],
+    });
+  } catch (err) {
+    // Script already injected or tab is restricted — both are fine
+    console.log(`[PromptBlast] ensureContentScript (tab ${tabId}):`, err.message);
+  }
+}
+
+
+/**
+ * Sends a message to the content script in `tabId` with a timeout.
+ * If the content script never responds (e.g., page throttled), we
+ * resolve after INJECT_TIMEOUT_MS so Promise.allSettled doesn't hang.
  */
 function injectQuery(tabId, service, query, autoSubmit) {
-  chrome.tabs.sendMessage(
-    tabId,
-    {
-      action: "fillQuery",
-      query,
-      autoSubmit,
-      inputType: service.inputType,
-      selector: service.selector,
-      submitType: service.submitType,
-      buttonSel: service.buttonSel,
-    },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        console.warn(
-          `[PromptBlast] Could not reach ${service.name}:`,
-          chrome.runtime.lastError.message
-        );
-      } else {
-        console.log(`[PromptBlast] ${service.name}:`, response);
+  const INJECT_TIMEOUT_MS = 15_000; // 15 s safety net per tab
+
+  return new Promise((resolve) => {
+    // Safety timeout: resolve even if the tab never responds
+    const timer = setTimeout(() => {
+      console.warn(`[PromptBlast] ${service.name} timed out after ${INJECT_TIMEOUT_MS}ms`);
+      resolve({ ok: false, error: "timeout" });
+    }, INJECT_TIMEOUT_MS);
+
+    chrome.tabs.sendMessage(
+      tabId,
+      {
+        action: "fillQuery",
+        query,
+        autoSubmit,
+        inputType: service.inputType,
+        selector: service.selector,
+        submitType: service.submitType,
+        buttonSel: service.buttonSel,
+      },
+      (response) => {
+        clearTimeout(timer);
+        if (chrome.runtime.lastError) {
+          console.warn(
+            `[PromptBlast] Could not reach ${service.name}:`,
+            chrome.runtime.lastError.message
+          );
+          resolve({ ok: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log(`[PromptBlast] ${service.name}:`, response);
+          resolve(response);
+        }
       }
-    }
-  );
+    );
+  });
 }
