@@ -99,6 +99,11 @@ class PromptBlastOverlay {
     this.shadow = this.container.attachShadow({ mode: "closed" });
 
     // 3. Inject CSS
+    const fontLink = document.createElement("link");
+    fontLink.rel = "stylesheet";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap";
+    this.shadow.appendChild(fontLink);
+
     const style = document.createElement("style");
     style.textContent = this.getStyles();
     this.shadow.appendChild(style);
@@ -126,36 +131,25 @@ class PromptBlastOverlay {
     // Load settings
     const stored = await chrome.storage.sync.get("settings");
     const settings = stored.settings || {};
-    this.enabledServiceIds = settings.enabledServices || this.allServices.map((s) => s.id);
+    this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
+
+    // Apply saved theme to the shadow host
+    if (settings.theme === "dark") {
+      this.container.dataset.dark = "true";
+    } else {
+      delete this.container.dataset.dark;
+    }
 
     // Load history
     const historyData = await chrome.storage.local.get("promptHistory");
     this.promptHistory = historyData.promptHistory || [];
-
-    // Set toggles
-    const autoSubmitToggle = this.shadow.getElementById("autoSubmitToggle");
-    if (autoSubmitToggle) {
-      autoSubmitToggle.checked = settings.autoSubmit !== false;
-    }
-
-    const groupTabsToggle = this.shadow.getElementById("groupTabsToggle");
-    if (groupTabsToggle) {
-      groupTabsToggle.checked = settings.groupTabs !== false;
-    }
-
-    const cycleTabsToggle = this.shadow.getElementById("cycleTabsToggle");
-    if (cycleTabsToggle) {
-      cycleTabsToggle.checked = settings.cycleTabs === true;
-    }
+    this.showRecents = settings.showRecents !== false;
   }
 
   setupListeners() {
     const promptInput = this.shadow.getElementById("promptInput");
     const sendBtn = this.shadow.getElementById("sendBtn");
     const settingsBtn = this.shadow.getElementById("settingsBtn");
-    const autoSubmitToggle = this.shadow.getElementById("autoSubmitToggle");
-    const groupTabsToggle = this.shadow.getElementById("groupTabsToggle");
-    const cycleTabsToggle = this.shadow.getElementById("cycleTabsToggle");
 
     const modal = this.shadow.querySelector(".modal-container");
 
@@ -205,15 +199,6 @@ class PromptBlastOverlay {
       chrome.runtime.sendMessage({ action: "openOptions" });
       this.hide();
     });
-
-    // Auto-submit toggle change
-    autoSubmitToggle.addEventListener("change", () => this.saveSettings());
-
-    // Group tabs toggle change
-    groupTabsToggle.addEventListener("change", () => this.saveSettings());
-
-    // Cycle tabs toggle change
-    cycleTabsToggle.addEventListener("change", () => this.saveSettings());
   }
 
   toggle() {
@@ -227,6 +212,7 @@ class PromptBlastOverlay {
   show() {
     this.visible = true;
     this.container.style.display = "flex";
+    this.updateShortcutHint();
     setTimeout(() => {
       const input = this.shadow.getElementById("promptInput");
       input.focus();
@@ -248,7 +234,7 @@ class PromptBlastOverlay {
       if (this.enabledServiceIds.includes(service.id)) {
         chip.classList.add("active");
       }
-      chip.innerHTML = `<span class="dot"></span>${service.name}`;
+      chip.innerHTML = `<img src="${chrome.runtime.getURL(service.iconPath)}" class="service-icon" />${service.name}`;
       chip.addEventListener("click", () => this.toggleService(service.id));
       serviceChipsEl.appendChild(chip);
     });
@@ -308,10 +294,16 @@ class PromptBlastOverlay {
     this.renderHistory();
   }
 
+  deleteFromHistory(prompt) {
+    this.promptHistory = this.promptHistory.filter((h) => h !== prompt);
+    chrome.storage.local.set({ promptHistory: this.promptHistory });
+    this.renderHistory();
+  }
+
   renderHistory() {
     const historySection = this.shadow.getElementById("historySection");
     const historyList = this.shadow.getElementById("historyList");
-    if (this.promptHistory.length === 0) {
+    if (!this.showRecents || this.promptHistory.length === 0) {
       historySection.classList.add("hidden");
       return;
     }
@@ -319,36 +311,75 @@ class PromptBlastOverlay {
     historyList.innerHTML = "";
     this.promptHistory.forEach((prompt) => {
       const li = document.createElement("li");
-      li.textContent = prompt;
+      li.className = "history-item";
       li.title = prompt;
-      li.addEventListener("click", () => {
+
+      const text = document.createElement("span");
+      text.className = "history-item-text";
+      text.textContent = prompt;
+      text.addEventListener("click", () => {
         const input = this.shadow.getElementById("promptInput");
         input.value = prompt;
         input.focus();
         this.updateSendButton();
       });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "history-delete-btn";
+      deleteBtn.title = "Remove from recents";
+      deleteBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.deleteFromHistory(prompt);
+      });
+
+      li.appendChild(text);
+      li.appendChild(deleteBtn);
       historyList.appendChild(li);
     });
   }
 
-  saveSettings() {
-    const autoSubmitToggle = this.shadow.getElementById("autoSubmitToggle");
-    const groupTabsToggle = this.shadow.getElementById("groupTabsToggle");
-    const cycleTabsToggle = this.shadow.getElementById("cycleTabsToggle");
-    return chrome.storage.sync.set({
-      settings: {
-        enabledServices: this.enabledServiceIds,
-        autoSubmit: autoSubmitToggle.checked,
-        groupTabs: groupTabsToggle.checked,
-        cycleTabs: cycleTabsToggle.checked,
-      },
-    });
+  async saveSettings() {
+    const stored = await chrome.storage.sync.get("settings");
+    const settings = stored.settings || {};
+    settings.enabledServices = this.enabledServiceIds;
+    return chrome.storage.sync.set({ settings });
   }
 
-  updateShortcutHint() {
-    const isMac = navigator.platform.toUpperCase().includes("MAC");
+  async updateShortcutHint() {
     const hint = this.shadow.getElementById("shortcutHint");
-    if (hint) hint.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+    const hintText = this.shadow.getElementById("shortcutText");
+    if (!hint || !hintText) return;
+
+    // Read the real shortcut from Chrome (via background script)
+    try {
+      const response = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: "getShortcut" }, resolve);
+      });
+      
+      if (response?.shortcut) {
+        hintText.textContent = response.shortcut;
+      } else {
+        const isMac = navigator.platform.toUpperCase().includes("MAC");
+        hintText.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+      }
+    } catch {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      hintText.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+    }
+
+    // Make it clickable: open options and scroll to keyboard shortcut section
+    hint.style.cursor = "pointer";
+    hint.title = "Click to change shortcut";
+    // Avoid double listeners if show() is called multiple times
+    if (!hint.dataset.listenerSet) {
+      hint.addEventListener("click", async () => {
+        await chrome.storage.local.set({ highlightShortcut: true });
+        chrome.runtime.sendMessage({ action: "openOptions" });
+        this.hide();
+      });
+      hint.dataset.listenerSet = "true";
+    }
   }
 
   getHTML() {
@@ -374,22 +405,7 @@ class PromptBlastOverlay {
 
         <div class="input-area">
           <textarea id="promptInput" placeholder="Type your prompt here…" rows="3" autofocus></textarea>
-          <div class="input-footer">
-            <div class="toggles">
-              <label class="toggle-control">
-                <input type="checkbox" id="autoSubmitToggle">
-                <span>Auto-submit</span>
-              </label>
-              <label class="toggle-control">
-                <input type="checkbox" id="groupTabsToggle">
-                <span>Group Tabs</span>
-              </label>
-              <label class="toggle-control has-tooltip">
-                <input type="checkbox" id="cycleTabsToggle">
-                <span>Cycle Tabs</span>
-                <div class="tooltip">Force activates each tab sequentially. Use this if AI sites fail to load in the background.</div>
-              </label>
-            </div>
+          <div class="input-footer" style="justify-content: flex-end;">
             <button id="sendBtn" class="send-btn" disabled>
               <span>Multicast</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -406,8 +422,14 @@ class PromptBlastOverlay {
         </div>
 
         <footer class="footer">
-          <span class="shortcut-hint" id="shortcutHint"></span>
-          <a href="https://github.com/arshit09/prompt-blast" target="_blank" class="gh-link">GitHub ↗</a>
+          <div class="shortcut-hint" id="shortcutHint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shortcut-icon">
+              <rect x="2" y="4" width="20" height="16" rx="2" ry="2"/>
+              <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
+            </svg>
+            <span class="shortcut-label">Shortcut:</span>
+            <span id="shortcutText"></span>
+          </div>
         </footer>
       </div>
     `;
@@ -416,38 +438,67 @@ class PromptBlastOverlay {
   getStyles() {
     return `
       :host {
-        --bg-primary: #0f0f12;
-        --bg-secondary: #1a1a22;
-        --bg-tertiary: #24242f;
-        --bg-hover: #2c2c3a;
-        --text-primary: #e8e8ed;
-        --text-secondary: #8888a0;
-        --text-muted: #555568;
-        --accent: #6c8aff;
-        --accent-hover: #8ca4ff;
-        --accent-glow: rgba(108, 138, 255, 0.15);
-        --border: #2a2a38;
-        --radius: 12px;
-        --radius-sm: 8px;
-        --transition: 150ms ease;
-        --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+        /* Ensure text-related properties don't inherit from the host site */
+        all: initial;
+        font-family: var(--font);
+
+        /* Ensure smoothing and other text rendering basics */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+
+        /* Google light-mode palette */
+        --bg-primary:   #ffffff;
+        --bg-secondary: #f1f3f4;
+        --bg-tertiary:  #e8eaed;
+        --bg-hover:     #dadce0;
+        --text-primary:   #202124;
+        --text-secondary: #5f6368;
+        --text-muted:     #80868b;
+        --accent:       #fb923c;
+        --accent-hover: #f97316;
+        --accent-glow:  rgba(251, 146, 60, 0.15);
+        --border:       #dadce0;
+        --radius:       14px;
+        --radius-sm:    8px;
+        --transition:   200ms ease;
+        --font: "Roboto", "Google Sans", system-ui, sans-serif;
       }
 
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :host([data-dark="true"]) {
+        /* Google dark-mode palette */
+        --bg-primary:   #202124;
+        --bg-secondary: #303134;
+        --bg-tertiary:  #3c4043;
+        --bg-hover:     #5f6368;
+        --text-primary:   #e8eaed;
+        --text-secondary: #bdc1c6;
+        --text-muted:     #9aa0a6;
+        --accent-glow:  rgba(249, 115, 22, 0.20);
+        --border:       #3c4043;
+      }
+
+      * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
+        font-family: var(--font);
+      }
 
       .modal-container {
-        width: 100%;
-        max-width: 600px;
+        width: 680px;
+        max-width: 90vw;
         background: var(--bg-primary);
         color: var(--text-primary);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 24px;
+        padding: 32px;
         display: flex;
         flex-direction: column;
         gap: 20px;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
         animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        line-height: 1.5;
       }
 
       @keyframes slideUp {
@@ -457,28 +508,29 @@ class PromptBlastOverlay {
 
       .header { display: flex; align-items: center; justify-content: space-between; }
       .logo { display: flex; align-items: center; gap: 10px; }
-      .logo h1 { font-size: 1.25rem; font-weight: 700; }
+      .logo h1 { font-size: 22px; font-weight: 700; }
 
       .icon-btn {
         background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
-        color: var(--text-secondary); cursor: pointer; padding: 8px;
+        color: var(--text-secondary); cursor: pointer; padding: 10px;
         display: flex; align-items: center; justify-content: center;
         transition: all var(--transition);
       }
       .icon-btn:hover { color: var(--text-primary); border-color: var(--text-muted); background: var(--bg-secondary); }
 
-      .service-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .service-chips { display: flex; flex-wrap: wrap; gap: 10px; }
       .chip {
-        display: flex; align-items: center; gap: 6px; padding: 6px 14px;
-        border-radius: 999px; border: 1px solid var(--border);
+        display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+        border-radius: 999px; border: 2px solid var(--border);
         background: var(--bg-secondary); color: var(--text-secondary);
-        font-size: 0.9rem; font-weight: 500; cursor: pointer;
+        font-size: 16px; font-weight: 500; cursor: pointer;
         transition: all var(--transition); user-select: none;
       }
       .chip:hover { border-color: var(--text-muted); color: var(--text-primary); }
-      .chip.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
-      .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
-      .chip.active .dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+      .chip.active { border-color: var(--accent); }
+      .service-icon { width: 14px; height: 14px; object-fit: contain; filter: grayscale(1) opacity(0.6); transition: all var(--transition); }
+      .chip:hover .service-icon { filter: grayscale(0) opacity(1); }
+      .chip.active .service-icon { filter: none; }
 
       .input-area {
         display: flex; flex-direction: column; background: var(--bg-secondary);
@@ -488,21 +540,21 @@ class PromptBlastOverlay {
       .input-area:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
 
       textarea {
-        width: 100%; padding: 16px; background: transparent; border: none; outline: none;
-        color: var(--text-primary); font-family: var(--font); font-size: 1.1rem;
-        line-height: 1.6; resize: none; min-height: 100px;
+        width: 100%; padding: 20px; background: transparent; border: none; outline: none;
+        color: var(--text-primary); font-family: var(--font); font-size: 18px;
+        line-height: 1.6; resize: none; min-height: 120px;
       }
       textarea::placeholder { color: var(--text-muted); }
 
       .input-footer {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-tertiary);
+        padding: 16px 20px; border-top: 1px solid var(--border); background: var(--bg-tertiary);
       }
 
-      .toggles { display: flex; align-items: center; gap: 16px; }
+      .toggles { display: flex; align-items: center; gap: 20px; }
 
-      .toggle-control { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; }
-      .toggle-control input { appearance: none; width: 16px; height: 16px; border: 2px solid var(--text-muted); border-radius: 4px; position: relative; cursor: pointer; transition: all var(--transition); }
+      .toggle-control { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text-secondary); cursor: pointer; }
+      .toggle-control input { appearance: none; width: 18px; height: 18px; border: 2px solid var(--text-muted); border-radius: 4px; position: relative; cursor: pointer; transition: all var(--transition); }
       .toggle-control input:checked { background: var(--accent); border-color: var(--accent); }
       .toggle-control input:checked::after {
         content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px;
@@ -514,7 +566,7 @@ class PromptBlastOverlay {
       .tooltip {
         position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
         width: 200px; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border);
-        border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 0.75rem;
+        border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;
         line-height: 1.4; pointer-events: none; opacity: 0; visibility: hidden;
         transition: all var(--transition); z-index: 10;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -526,29 +578,66 @@ class PromptBlastOverlay {
       .has-tooltip:hover .tooltip { opacity: 1; visibility: visible; bottom: calc(100% + 6px); }
 
       .send-btn {
-        display: flex; align-items: center; gap: 8px; padding: 10px 20px;
+        display: flex; align-items: center; gap: 8px; padding: 12px 24px;
         border: none; border-radius: var(--radius-sm);
         background: var(--accent); color: #fff; font-family: var(--font);
-        font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+        font-size: 16px; font-weight: 600; cursor: pointer; transition: all var(--transition);
       }
-      .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(108, 138, 255, 0.4); }
+      .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); }
       .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
       .history-section { display: flex; flex-direction: column; gap: 8px; }
       .hidden { display: none; }
-      .history-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
+      .history-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
       .history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-      .history-list li {
-        padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem;
-        color: var(--text-secondary); cursor: pointer; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis; transition: all var(--transition);
+      .history-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 12px 10px 16px; border-radius: var(--radius-sm);
+        transition: background var(--transition);
       }
-      .history-list li:hover { background: var(--bg-hover); color: var(--text-primary); }
+      .history-item:hover { background: var(--bg-hover); }
+      .history-item:hover .history-delete-btn { opacity: 1; pointer-events: auto; }
+      .history-item-text {
+        flex: 1; font-size: 15px; color: var(--text-secondary);
+        cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        transition: color var(--transition);
+      }
+      .history-item:hover .history-item-text { color: var(--text-primary); }
+      .history-delete-btn {
+        flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; padding: 0; border: none; border-radius: 4px;
+        background: none; color: var(--text-muted); cursor: pointer;
+        opacity: 0; pointer-events: none;
+        transition: all var(--transition);
+      }
+      .history-delete-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
-      .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); }
-      .shortcut-hint { font-size: 0.8rem; color: var(--text-muted); background: var(--bg-secondary); padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
-      .gh-link { font-size: 0.8rem; color: var(--text-muted); text-decoration: none; }
-      .gh-link:hover { color: var(--accent); }
+      .footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; }
+      .shortcut-hint { 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+        font-size: 13px; 
+        color: var(--text-muted); 
+        background: var(--bg-secondary); 
+        padding: 6px 12px; 
+        border-radius: var(--radius-sm); 
+        border: 1px solid var(--border); 
+        transition: all var(--transition);
+      }
+      .shortcut-hint:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-color: var(--text-muted);
+      }
+      .shortcut-icon { 
+        stroke: var(--text-muted); 
+        transition: stroke var(--transition);
+      }
+      .shortcut-hint:hover .shortcut-icon {
+        stroke: var(--text-primary);
+      }
+      .shortcut-label { font-weight: 500; margin-right: -2px; }
     `;
   }
 }

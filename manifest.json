@@ -14,8 +14,7 @@
     "https://gemini.google.com/*",
     "https://copilot.microsoft.com/*",
     "https://chat.deepseek.com/*",
-    "https://www.perplexity.ai/*",
-    "https://poe.com/*"
+    "https://www.perplexity.ai/*"
   ],
 
   "background": {
@@ -56,6 +55,13 @@
       "matches": ["<all_urls>"],
       "js": ["scripts/content.js"],
       "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.svg", "icons/*.png"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

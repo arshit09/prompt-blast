@@ -42,6 +42,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: '#composer-submit-button, [data-testid="send-button"]',
     waitMs: 2500,
+    iconPath: 'icons/chatgpt.svg'
   },
   {
     id: "claude",
@@ -52,6 +53,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"], [aria-label="Send Message"], button:has(path[d^="M208.49"])',
     waitMs: 2500,
+    iconPath: 'icons/claude.svg'
   },
   {
     id: "gemini",
@@ -62,6 +64,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Send message"]',
     waitMs: 2500,
+    iconPath: 'icons/gemini.svg'
   },
   {
     id: "copilot",
@@ -71,6 +74,7 @@ const AI_SERVICES = [
     selector: "#userInput",
     submitType: "enter",
     waitMs: 2500,
+    iconPath: 'icons/copilot.svg'
   },
   {
     id: "deepseek",
@@ -80,6 +84,7 @@ const AI_SERVICES = [
     selector: "textarea",
     submitType: "enter",
     waitMs: 2500,
+    iconPath: 'icons/deepseek.svg'
   },
   {
     id: "perplexity",
@@ -90,15 +95,7 @@ const AI_SERVICES = [
     submitType: "button",
     buttonSel: 'button[aria-label="Submit"]',
     waitMs: 2500,
-  },
-  {
-    id: "poe",
-    name: "Poe",
-    url: "https://poe.com/",
-    inputType: "textarea",
-    selector: "textarea",
-    submitType: "enter",
-    waitMs: 2500,
+    iconPath: 'icons/perplexity.svg'
   },
 ];
 
@@ -114,10 +111,9 @@ const AI_SERVICES = [
  */
 async function getSettings() {
   const defaults = {
-    enabledServices: ["chatgpt", "claude", "gemini", "copilot", "deepseek", "perplexity", "poe"],
+    enabledServices: ["chatgpt", "claude", "gemini"],
     autoSubmit: true,
     groupTabs: true,
-    cycleTabs: false,
     delayMs: 2000,
   };
 
@@ -182,8 +178,31 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.action === "openOptions") {
-    chrome.runtime.openOptionsPage();
-    sendResponse({ ok: true });
+    (async () => {
+      // If there's already an options tab open, focus it instead of opening a new one
+      const optionsUrl = chrome.runtime.getURL("pages/options.html");
+      const existingTabs = await chrome.tabs.query({ url: optionsUrl });
+      if (existingTabs.length > 0) {
+        await chrome.tabs.update(existingTabs[0].id, { active: true });
+        await chrome.windows.update(existingTabs[0].windowId, { focused: true });
+      } else {
+        chrome.runtime.openOptionsPage();
+      }
+      sendResponse({ ok: true });
+    })();
+    return true; // keep message channel open for async sendResponse
+  }
+
+  if (message.action === "getShortcut") {
+    (async () => {
+      try {
+        const commands = await chrome.commands.getAll();
+        const cmd = commands.find((c) => c.name === "_execute_action");
+        sendResponse({ shortcut: cmd?.shortcut || "" });
+      } catch (err) {
+        sendResponse({ shortcut: "" });
+      }
+    })();
     return true;
   }
 });
@@ -237,31 +256,11 @@ async function handleMulticast(query) {
   // Handle tab activation & injection
   if (tabs.length > 0) {
     console.log(`[PromptBlast] Target services: ${targets.map(t => t.name).join(", ")}`);
-    console.log(`[PromptBlast] Cycle Tabs setting: ${settings.cycleTabs}`);
 
     // 1. Activate the first tab immediately so the user knows work has started
     chrome.tabs.update(tabs[0].id, { active: true });
 
-    // 2. If Cycle Tabs is enabled, tour through all tabs FIRST to wake them up
-    if (settings.cycleTabs) {
-      console.log(`[PromptBlast] Starting initial tab tour for ${tabs.length} tabs to wake them up...`);
-      for (const tab of tabs) {
-        try {
-          await chrome.tabs.update(tab.id, { active: true, highlighted: true });
-          await chrome.windows.update(tab.windowId, { focused: true });
-          // Brief pause to allow the tab to wake up and Chrome to prioritize it
-          await new Promise((r) => setTimeout(r, 800));
-        } catch (err) {
-          console.error(`[PromptBlast] Failed to activate tab ${tab.id}:`, err);
-        }
-      }
-      console.log("[PromptBlast] Initial tour complete, returning focus to first tab.");
-      chrome.tabs.update(tabs[0].id, { active: true });
-    } else {
-      console.log("[PromptBlast] Cycling disabled, skipping tour.");
-    }
-
-    // 3. Fire all injections in parallel and track their completion.
+    // 2. Fire all injections in parallel and track their completion.
     const injectionPromises = tabs.map((tab, index) => {
       const service = targets[index];
       return waitForTabLoad(tab.id)

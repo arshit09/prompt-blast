@@ -23,6 +23,9 @@ const clearHistoryBtn = document.getElementById("clearHistory");
 const resetAllBtn = document.getElementById("resetAll");
 const openShortcutsBtn = document.getElementById("openShortcuts");
 const toastEl = document.getElementById("toast");
+const darkModeEl = document.getElementById("darkMode");
+const showRecentsEl = document.getElementById("showRecents");
+const currentShortcutBadge = document.getElementById("currentShortcutBadge");
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
@@ -30,10 +33,11 @@ let enabledServiceIds = [];
 
 // ── Default Settings ─────────────────────────────────────────
 const DEFAULTS = {
-  enabledServices: ["chatgpt", "claude", "gemini", "copilot", "deepseek"],
+  enabledServices: ["chatgpt", "claude", "gemini"],
   autoSubmit: true,
   groupTabs: true,
   delayMs: 2000,
+  showRecents: true,
 };
 
 // ── Initialization ───────────────────────────────────────────
@@ -53,6 +57,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   autoSubmitEl.checked = settings.autoSubmit;
   groupTabsEl.checked = settings.groupTabs;
   delayMsEl.value = settings.delayMs;
+  showRecentsEl.checked = settings.showRecents !== false;
+
+  // Apply saved theme
+  const savedTheme = settings.theme || "light";
+  document.documentElement.dataset.theme = savedTheme;
+  darkModeEl.checked = savedTheme === "dark";
+  darkModeEl.addEventListener("change", () => {
+    const theme = darkModeEl.checked ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    save();
+  });
+
+  showRecentsEl.addEventListener("change", save);
 
   // Render the service list
   renderServices();
@@ -67,6 +84,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   openShortcutsBtn.addEventListener("click", () => {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
   });
+
+  // Load live shortcut & check if we need to scroll+blink
+  loadCurrentShortcut();
+  checkShortcutHighlight();
 });
 
 
@@ -80,9 +101,13 @@ function renderServices() {
     item.className = "service-item";
 
     const info = document.createElement("div");
+    info.className = "service-info";
     info.innerHTML = `
-      <p class="name">${service.name}</p>
-      <p class="url">${service.url}</p>
+      <img src="../${service.iconPath}" class="service-icon" />
+      <div>
+        <p class="name">${service.name}</p>
+        <p class="url">${service.url}</p>
+      </div>
     `;
 
     const toggle = document.createElement("label");
@@ -130,6 +155,8 @@ async function save() {
     autoSubmit: autoSubmitEl.checked,
     groupTabs: groupTabsEl.checked,
     delayMs: parseInt(delayMsEl.value, 10) || DEFAULTS.delayMs,
+    theme: darkModeEl.checked ? "dark" : "light",
+    showRecents: showRecentsEl.checked,
   };
 
   await chrome.storage.sync.set({ settings });
@@ -175,3 +202,51 @@ function showToast(message) {
     toastEl.classList.remove("show");
   }, 2000);
 }
+
+
+// ── Shortcut Helpers ─────────────────────────────────────────
+
+/**
+ * Reads the actual shortcut registered in Chrome and populates
+ * the badge in the Keyboard Shortcut section.
+ */
+async function loadCurrentShortcut() {
+  if (!currentShortcutBadge) return;
+  try {
+    const commands = await chrome.commands.getAll();
+    const cmd = commands.find((c) => c.name === "_execute_action");
+    const shortcut = cmd?.shortcut;
+    currentShortcutBadge.textContent = shortcut || "Not set";
+  } catch {
+    currentShortcutBadge.textContent = "Unavailable";
+  }
+}
+
+
+/**
+ * Checks whether the popup asked us to highlight the shortcut section.
+ * If it did, scroll to it, animate a 1-second blink, then clear the flag.
+ */
+async function checkShortcutHighlight() {
+  const data = await chrome.storage.local.get("highlightShortcut");
+  if (!data.highlightShortcut) return;
+
+  // Clear the flag immediately so it doesn't re-trigger on refresh
+  await chrome.storage.local.remove("highlightShortcut");
+
+  const section = document.getElementById("shortcut-section");
+  if (!section) return;
+
+  // Scroll the section into view, centered
+  section.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // Wait for scroll to settle, then blink
+  setTimeout(() => {
+    section.classList.add("highlight-blink");
+    // Remove the class after animation so it can replay if triggered again
+    section.addEventListener("animationend", () => {
+      section.classList.remove("highlight-blink");
+    }, { once: true });
+  }, 400);
+}
+

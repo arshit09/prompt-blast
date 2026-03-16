@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PromptBlast — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/options.css">
 </head>
 <body>
@@ -13,8 +16,8 @@
     <header class="header">
       <div class="logo">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="#6c8aff" stroke-width="2"/>
-          <path d="M8 12l3 3 5-6" stroke="#6c8aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M8 12l3 3 5-6" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <div>
           <h1>PromptBlast</h1>
@@ -29,6 +32,33 @@
       <p class="section-desc">Choose which AI services to include when multicasting. Drag to reorder priority.</p>
       <div id="serviceList" class="service-list">
         <!-- Dynamically populated -->
+      </div>
+    </section>
+
+    <!-- ── Section: Appearance ─────────────────────── -->
+    <section class="section">
+      <h2>Appearance</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Dark mode</p>
+          <p class="setting-desc">Switch between light and dark interface</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="darkMode">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <p class="setting-label">Show recent prompts</p>
+          <p class="setting-desc">Display your recent prompt history in the overlay</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="showRecents" checked>
+          <span class="slider"></span>
+        </label>
       </div>
     </section>
 
@@ -58,6 +88,7 @@
         </label>
       </div>
 
+
       <div class="setting-row">
         <div class="setting-info">
           <p class="setting-label">Page load delay</p>
@@ -71,8 +102,17 @@
     </section>
 
     <!-- ── Section: Keyboard Shortcut ─────────────────── -->
-    <section class="section">
+    <section class="section" id="shortcut-section">
       <h2>Keyboard Shortcut</h2>
+
+      <div class="setting-row" style="margin-bottom: 12px;">
+        <div class="setting-info">
+          <p class="setting-label">Current shortcut</p>
+          <p class="setting-desc">The key combination to open the PromptBlast overlay</p>
+        </div>
+        <span id="currentShortcutBadge" class="shortcut-badge">Loading…</span>
+      </div>
+
       <p class="section-desc">
         Chrome manages extension shortcuts globally. To change the hotkey:
       </p>
@@ -111,6 +151,16 @@
     <!-- ── Toast ──────────────────────────────────────── -->
     <div id="toast" class="toast hidden">Settings saved</div>
 
+    <!-- ── Footer ─────────────────────────────────────── -->
+    <footer class="footer">
+      <p>© 2024 PromptBlast</p>
+      <a href="https://github.com/arshit09/prompt-blast" target="_blank" class="gh-link" title="View on GitHub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+    </footer>
   </div>
 
   <script src="options.js"></script>

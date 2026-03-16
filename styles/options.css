@@ -5,24 +5,38 @@
  */
 
 :root {
-  --bg-primary: #0f0f12;
-  --bg-secondary: #1a1a22;
-  --bg-tertiary: #24242f;
-  --bg-hover: #2c2c3a;
-  --text-primary: #e8e8ed;
-  --text-secondary: #8888a0;
-  --text-muted: #555568;
-  --accent: #6c8aff;
-  --accent-hover: #8ca4ff;
-  --accent-glow: rgba(108, 138, 255, 0.15);
-  --danger: #ff5c6a;
-  --danger-hover: #ff7a85;
-  --green: #4ade80;
-  --border: #2a2a38;
-  --radius: 10px;
-  --radius-sm: 6px;
-  --transition: 150ms ease;
-  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  /* Google light-mode palette */
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f1f3f4;
+  --bg-tertiary:  #e8eaed;
+  --bg-hover:     #dadce0;
+  --text-primary:   #202124;
+  --text-secondary: #5f6368;
+  --text-muted:     #80868b;
+  --accent:       #fb923c;
+  --accent-hover: #f97316;
+  --accent-light: rgba(251, 146, 60, 0.14);
+  --danger:       #d93025;
+  --danger-hover: #b5221a;
+  --green:        #1e8e3e;
+  --border:       #dadce0;
+  --radius:       14px;
+  --radius-sm:    8px;
+  --transition:   200ms ease;
+  --font: "Roboto", "Google Sans", system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  /* Google dark-mode palette */
+  --bg-primary:   #202124;
+  --bg-secondary: #303134;
+  --bg-tertiary:  #3c4043;
+  --bg-hover:     #5f6368;
+  --text-primary:   #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-muted:     #9aa0a6;
+  --accent-light: rgba(249, 115, 22, 0.18);
+  --border:       #3c4043;
 }
 
 *, *::before, *::after {
@@ -37,12 +51,12 @@ body {
 }
 
 .container {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 40px 24px 60px;
+  padding: 48px 32px 80px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 0;
 }
 
 /* ── Header ────────────────────────────────────────────────── */
@@ -55,13 +69,13 @@ body {
 }
 
 .logo h1 {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -71,20 +85,29 @@ body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* Always have padding/margin to prevent wiggling during highlight */
+  padding: 20px 24px;
+  margin: 0 -24px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), outline var(--transition);
+  outline: 2px solid transparent;
+  outline-offset: 0px;
+  position: relative;
+  z-index: 1;
 }
 
 .section h2 {
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  padding-bottom: 8px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .section-desc {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
-  margin-top: -6px;
+  margin-top: -4px;
 }
 
 /* ── Service List ──────────────────────────────────────────── */
@@ -98,7 +121,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 16px 20px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -109,9 +132,22 @@ body {
   background: var(--bg-tertiary);
 }
 
+.service-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.service-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.1));
+}
+
 .service-item .name {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .service-item .url {
@@ -125,32 +161,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 18px 24px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  gap: 16px;
+  gap: 24px;
 }
 
 .setting-info { flex: 1; }
 
 .setting-label {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 600;
 }
 
 .setting-desc {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* ── Toggle Switch ─────────────────────────────────────────── */
 .toggle {
   position: relative;
   display: inline-block;
-  width: 42px;
-  height: 24px;
+  width: 50px;
+  height: 28px;
   flex-shrink: 0;
 }
 
@@ -169,8 +205,8 @@ body {
 .slider::before {
   content: "";
   position: absolute;
-  height: 18px;
-  width: 18px;
+  height: 22px;
+  width: 22px;
   left: 2px;
   bottom: 2px;
   background: var(--text-muted);
@@ -185,7 +221,7 @@ body {
 
 .toggle input:checked + .slider::before {
   background: white;
-  transform: translateX(18px);
+  transform: translateX(22px);
 }
 
 /* ── Number Input ──────────────────────────────────────────── */
@@ -197,14 +233,14 @@ body {
 }
 
 .num-input {
-  width: 80px;
-  padding: 6px 10px;
+  width: 100px;
+  padding: 8px 12px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   text-align: center;
   outline: none;
   transition: border-color var(--transition);
@@ -215,20 +251,20 @@ body {
 }
 
 .input-suffix {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: var(--text-muted);
 }
 
 /* ── Buttons ───────────────────────────────────────────────── */
 .btn-secondary {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-family: var(--font);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition);
@@ -240,13 +276,13 @@ body {
 }
 
 .btn-danger {
-  padding: 6px 14px;
+  padding: 8px 18px;
   border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--danger);
   font-family: var(--font);
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -254,7 +290,7 @@ body {
 }
 
 .btn-danger:hover {
-  background: rgba(255, 92, 106, 0.1);
+  background: rgba(220, 38, 38, 0.1);
 }
 
 /* ── Shortcut Steps ────────────────────────────────────────── */
@@ -277,6 +313,7 @@ body {
 
 .shortcut-steps strong {
   color: var(--text-primary);
+  font-weight: 600;
 }
 
 /* ── Toast ─────────────────────────────────────────────────── */
@@ -287,7 +324,7 @@ body {
   transform: translateX(-50%) translateY(20px);
   padding: 10px 20px;
   background: var(--green);
-  color: #0f0f12;
+  color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
   border-radius: 999px;
@@ -308,3 +345,73 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Shortcut Badge ────────────────────────────────────────── */
+.shortcut-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-family: "SF Mono", "Consolas", "Roboto Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Shortcut Section Blink ────────────────────────────────── */
+@keyframes section-blink {
+  0%   { background: transparent;         outline-color: transparent; }
+  15%  { background: var(--accent-light); outline-color: var(--accent); }
+  85%  { background: var(--accent-light); outline-color: var(--accent); }
+  100% { background: transparent;         outline-color: transparent; }
+}
+
+.section.highlight-blink {
+  animation: section-blink 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  z-index: 10;
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.footer {
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.footer .gh-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition);
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+
+.footer .gh-link:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+  background: var(--bg-tertiary);
+}
+
+.footer .gh-link svg {
+  color: var(--text-secondary);
+}
+
+.footer .gh-link:hover svg {
+  color: var(--text-primary);
+}
+

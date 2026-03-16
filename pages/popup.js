@@ -22,6 +22,9 @@ const historySection = document.getElementById("historySection");
 const historyList = document.getElementById("historyList");
 const settingsBtn = document.getElementById("settingsBtn");
 const shortcutHint = document.getElementById("shortcutHint");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+const iconMoon = document.getElementById("iconMoon");
+const iconSun = document.getElementById("iconSun");
 
 // ── State ────────────────────────────────────────────────────
 let allServices = [];        // Full list from background.js
@@ -38,8 +41,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Load saved settings
   const stored = await chrome.storage.sync.get("settings");
   const settings = stored.settings || {};
-  enabledServiceIds = settings.enabledServices || allServices.map((s) => s.id);
+  enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
   autoSubmitToggle.checked = settings.autoSubmit !== false; // default: true
+
+  // 2b. Apply theme
+  applyTheme(settings.theme || "light");
+  themeToggleBtn.addEventListener("click", toggleTheme);
 
   // 3. Load prompt history
   const historyData = await chrome.storage.local.get("promptHistory");
@@ -73,7 +80,7 @@ function renderServiceChips() {
       chip.classList.add("active");
     }
 
-    chip.innerHTML = `<span class="dot"></span>${service.name}`;
+    chip.innerHTML = `<img src="../${service.iconPath}" class="service-icon" />${service.name}`;
     chip.addEventListener("click", () => toggleService(service.id));
 
     serviceChipsEl.appendChild(chip);
@@ -217,6 +224,7 @@ function saveSettings() {
     settings: {
       enabledServices: enabledServiceIds,
       autoSubmit: autoSubmitToggle.checked,
+      theme: document.documentElement.dataset.theme || "light",
     },
   });
 }
@@ -237,9 +245,65 @@ function getServices() {
 
 
 /**
- * Shows the correct keyboard shortcut for the user's OS.
+ * Reads the actual shortcut set by the user via chrome.commands
+ * and updates the hint badge. Falls back to a readable default.
  */
-function updateShortcutHint() {
-  const isMac = navigator.platform.toUpperCase().includes("MAC");
-  shortcutHint.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+async function updateShortcutHint() {
+  try {
+    const commands = await chrome.commands.getAll();
+    // The _execute_action command controls the extension icon click / shortcut
+    const cmd = commands.find((c) => c.name === "_execute_action");
+    const shortcut = cmd?.shortcut || "";
+
+    if (shortcut) {
+      // Format: turn "Ctrl+Shift+A" into a nice display
+      shortcutHint.textContent = shortcut;
+    } else {
+      shortcutHint.textContent = "No shortcut set";
+    }
+  } catch {
+    // commands API not available (shouldn't happen in MV3 popup)
+    const isMac = navigator.platform.toUpperCase().includes("MAC");
+    shortcutHint.textContent = isMac ? "⌃⇧A" : "Ctrl+Shift+A";
+  }
+
+  // Make the badge clickable — open options and highlight the shortcut section
+  shortcutHint.style.cursor = "pointer";
+  shortcutHint.title = "Click to change shortcut";
+  shortcutHint.addEventListener("click", async () => {
+    // Signal the options page to highlight the shortcut section on load
+    await chrome.storage.local.set({ highlightShortcut: true });
+    chrome.runtime.openOptionsPage();
+  });
+}
+
+
+// ── Theme ─────────────────────────────────────────────────────
+
+/**
+ * Applies a theme ("light" | "dark") to the document and
+ * swaps the toggle button icon accordingly.
+ */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  if (theme === "dark") {
+    iconMoon.style.display = "none";
+    iconSun.style.display = "";
+  } else {
+    iconMoon.style.display = "";
+    iconSun.style.display = "none";
+  }
+}
+
+/**
+ * Flips the current theme and persists it.
+ */
+async function toggleTheme() {
+  const current = document.documentElement.dataset.theme || "light";
+  const next = current === "dark" ? "light" : "dark";
+  applyTheme(next);
+  // Persist alongside other settings
+  const stored = await chrome.storage.sync.get("settings");
+  const settings = stored.settings || {};
+  await chrome.storage.sync.set({ settings: { ...settings, theme: next } });
 }
