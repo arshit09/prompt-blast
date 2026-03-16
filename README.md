@@ -13,7 +13,7 @@ PromptBlast is a powerful, open-source Chrome extension that lets you send a sin
 - **Standardized UI** — Consistent popup dimensions and layout across all websites.
 - **Smart Selection** — Toggle specific AIs on/off. ChatGPT, Claude, and Gemini are pre-enabled by default.
 - **Prompt History** — Access recent prompts with one click. Clear or hide history based on your preference.
-- **Customizable Shortcuts** — Quickly trigger the overlay with `Ctrl+Shift+A` (customizable in Chrome settings).
+- **Customizable Shortcuts** — Quickly trigger the overlay with `Ctrl+Shift+X` (customizable in Chrome settings).
 - **Auto-Submit** — Automatically starts the conversation for you, or just pre-fills the text area.
 - **Vertical Positioning** — Fine-tune where the overlay appears on your screen using an intuitive slider.
 - **Tab Grouping** — Keeps your workspace organized by grouping all AI tabs automatically.
