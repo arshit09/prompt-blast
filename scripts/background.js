@@ -268,7 +268,7 @@ async function handleMulticast(query) {
         .then(() => ensureContentScript(tab.id))
         .then(() => {
           console.log(`[PromptBlast] Injecting into ${service.name}...`);
-          return injectQuery(tab.id, service, query, settings.autoSubmit);
+          return injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
         })
         .catch((err) => {
           console.warn(`[PromptBlast] Pipeline failed for ${service.name}:`, err);
@@ -347,7 +347,7 @@ async function ensureContentScript(tabId) {
  * If the content script never responds (e.g., page throttled), we
  * resolve after INJECT_TIMEOUT_MS so Promise.allSettled doesn't hang.
  */
-function injectQuery(tabId, service, query, autoSubmit) {
+function injectQuery(tabId, service, query, autoSubmit, waitMs) {
   const INJECT_TIMEOUT_MS = 15_000; // 15 s safety net per tab
 
   return new Promise((resolve) => {
@@ -363,6 +363,7 @@ function injectQuery(tabId, service, query, autoSubmit) {
         action: "fillQuery",
         query,
         autoSubmit,
+        waitMs,
         inputType: service.inputType,
         selector: service.selector,
         submitType: service.submitType,

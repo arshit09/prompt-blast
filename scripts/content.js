@@ -701,18 +701,22 @@ async function fillAndSubmit({
   autoSubmit,
   submitType,
   buttonSel,
+  waitMs = 0,
 }) {
-  // Step 1: Wait for the input element to appear in the DOM
+  // Step 1: Wait for the page to settle before interacting
+  if (waitMs > 0) await sleep(waitMs);
+
+  // Step 2: Wait for the input element to appear in the DOM
   const element = await waitForElement(selector);
   if (!element) {
     return { ok: false, error: `Input not found: ${selector}` };
   }
 
-  // Step 2: Focus the element (some sites need this to initialize)
+  // Step 3: Focus the element (some sites need this to initialize)
   element.focus();
   await sleep(200);
 
-  // Step 3: Fill the query based on the input type
+  // Step 4: Fill the query based on the input type
   let filled = false;
   switch (inputType) {
     case "textarea":
@@ -733,7 +737,7 @@ async function fillAndSubmit({
     return { ok: false, error: "Could not fill the input element" };
   }
 
-  // Step 4: Submit if auto-submit is enabled
+  // Step 5: Submit if auto-submit is enabled
   if (autoSubmit) {
     // If we have a button selector, wait for it to be visible/enabled
     if (buttonSel && submitType !== "enter") {
