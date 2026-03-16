@@ -36,7 +36,6 @@ const chipDisplayContainer = document.getElementById("chipDisplayContainer");
 const chipDisplayTrigger = document.getElementById("chipDisplayTrigger");
 const chipDisplayLabel = document.getElementById("chipDisplayLabel");
 const chipDisplayOptions = document.getElementById("chipDisplayOptions");
-const advancedModeEl = document.getElementById("advancedMode");
 const mainContainer = document.querySelector(".container");
 
 // Preview References
@@ -57,7 +56,6 @@ const DEFAULTS = {
   overlayPosition: "top",
   chipDisplay: "logo-name",
   theme: "dark",
-  advancedMode: false,
 };
 
 // ── Initialization ───────────────────────────────────────────
@@ -87,8 +85,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   overlayPositionEl.value = settings.overlayPosition || "top";
   overlayPositionLabel.textContent = settings.overlayPosition ? settings.overlayPosition.charAt(0).toUpperCase() + settings.overlayPosition.slice(1) : "Top";
   updateSelectedOption(settings.overlayPosition || "top");
-  advancedModeEl.checked = settings.advancedMode === true;
-  if (advancedModeEl.checked) mainContainer.classList.add("advanced-mode");
+  updateSelectedOption(settings.overlayPosition || "top");
 
   // Apply saved theme
   const savedTheme = settings.theme || "dark";
@@ -119,12 +116,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   resetAllBtn.addEventListener("click", resetAll);
   openShortcutsBtn.addEventListener("click", () => {
     chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-  });
-
-  advancedModeEl.addEventListener("change", () => {
-    mainContainer.classList.toggle("advanced-mode", advancedModeEl.checked);
-    renderServices();
-    save();
   });
 
   // Init custom selects
@@ -237,22 +228,6 @@ function initClickableRows() {
       checkbox.dispatchEvent(new Event("change"));
     });
   });
-
-  // Handle advanced mode toggle in header
-  const advToggleContainer = document.querySelector(".header-tools .toggle-container");
-  if (advToggleContainer) {
-    advToggleContainer.addEventListener("click", (e) => {
-      const checkbox = advToggleContainer.querySelector('input[type="checkbox"]');
-      if (!checkbox) return;
-
-      if (e.target.closest("input") || e.target.closest(".slider")) {
-        return;
-      }
-
-      checkbox.checked = !checkbox.checked;
-      checkbox.dispatchEvent(new Event("change"));
-    });
-  }
 }
 
 
@@ -292,40 +267,12 @@ function renderServices() {
 
     item.appendChild(info);
 
-    // Advanced Info (Visible only in Advanced Mode)
-    if (advancedModeEl.checked) {
-      const adv = document.createElement("div");
-      adv.className = "service-advanced";
-      adv.innerHTML = `
-        <div class="adv-grid">
-          <div class="adv-field">
-            <span class="adv-label">Input Type</span>
-            <input type="text" class="adv-input" value="${service.inputType || ''}" readonly>
-          </div>
-          <div class="adv-field">
-            <span class="adv-label">Selector</span>
-            <input type="text" class="adv-input" value="${service.selector || ''}" readonly>
-          </div>
-          <div class="adv-field">
-            <span class="adv-label">Submit Type</span>
-            <input type="text" class="adv-input" value="${service.submitType || ''}" readonly>
-          </div>
-          <div class="adv-field">
-            <span class="adv-label">Button Selector</span>
-            <input type="text" class="adv-input" value="${service.buttonSel || 'N/A'}" readonly>
-          </div>
-        </div>
-        <p class="adv-note">These parameters are for developers. AI websites update frequently; if a service breaks, these targets may need adjustment.</p>
-      `;
-      item.appendChild(adv);
-    }
-
     item.appendChild(toggle);
 
     // Entire row click toggles the service
     item.addEventListener("click", (e) => {
-      // Don't toggle if clicking the toggle switch itself or the advanced info area
-      if (e.target.closest(".toggle") || e.target.closest(".service-advanced")) return;
+      // Don't toggle if clicking the toggle switch itself
+      if (e.target.closest(".toggle")) return;
       checkbox.checked = !checkbox.checked;
       toggleService(service.id, checkbox.checked);
     });
@@ -364,7 +311,6 @@ async function save() {
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
-    advancedMode: advancedModeEl.checked,
   };
 
   await chrome.storage.sync.set({ settings });

@@ -69,7 +69,7 @@ prompt-blast/
 │   └── content.js             # UI Overlay & prompt injection logic
 ├── pages/
 │   ├── popup.html             # Main blast interface
-│   ├── options.html           # Advanced settings page
+│   ├── options.html           # Settings & customization page
 ├── styles/
 │   ├── popup.css              # Custom themes & layout tokens
 │   └── options.css            # Settings page styling

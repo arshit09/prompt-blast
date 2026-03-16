@@ -374,12 +374,6 @@ body {
   cursor: pointer;
 }
 
-.advanced-mode .service-item {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 16px;
-}
-
 .service-item:hover {
   background: var(--bg-tertiary);
 }
@@ -406,55 +400,6 @@ body {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 2px;
-}
-
-/* ── Advanced Service Details ──────────────────────────────── */
-.service-advanced {
-  background: var(--bg-primary);
-  border-radius: var(--radius-sm);
-  padding: 16px;
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.adv-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.adv-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.adv-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.adv-input {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 6px 10px;
-  color: var(--text-primary);
-  font-family: "SF Mono", monospace;
-  font-size: 0.8rem;
-  width: 100%;
-}
-
-.adv-note {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-style: italic;
-  padding-left: 8px;
-  border-left: 2px solid var(--accent);
 }
 
 /* ── Setting Row ───────────────────────────────────────────── */
