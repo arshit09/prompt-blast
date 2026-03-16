@@ -272,7 +272,7 @@ class PromptBlastOverlay {
       }
       const isDark = this.container.dataset.dark === "true";
       const icon = (isDark && service.iconPathDark) ? service.iconPathDark : service.iconPath;
-      const showLogo = mode === "logo-name";
+      const showLogo = mode === "logo-name" || mode === "logo";
       const showName = mode === "name" || mode === "logo-name";
       chip.innerHTML = [
         showLogo ? `<img src="${chrome.runtime.getURL(icon)}" class="service-icon" />` : "",

@@ -131,6 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCustomSelect();
   initChipDisplaySelect();
 
+  // Make setting rows clickable
+  initClickableRows();
+
   // Initial preview update
   updatePreview();
 
@@ -208,7 +211,7 @@ function initChipDisplaySelect() {
 }
 
 function updateChipDisplayLabel(val) {
-  const labels = { "none": "None", "name": "Name only", "logo-name": "Name with Logo" };
+  const labels = { "none": "None", "logo": "Logo only", "name": "Name only", "logo-name": "Name with Logo" };
   chipDisplayLabel.textContent = labels[val] || "Name with Logo";
 }
 
@@ -216,6 +219,40 @@ function updateChipDisplaySelected(val) {
   chipDisplayOptions.querySelectorAll(".option").forEach(opt => {
     opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
   });
+}
+
+function initClickableRows() {
+  // Handle setting rows (Dark mode, Show recents, Auto-submit, Group tabs)
+  document.querySelectorAll(".setting-row").forEach(row => {
+    row.addEventListener("click", (e) => {
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      if (!checkbox) return;
+      
+      // If we clicked the checkbox itself or the slider, let the browser handle it
+      if (e.target.closest("input") || e.target.closest(".slider") || e.target.closest("button") || e.target.closest(".custom-select") || e.target.closest(".input-group")) {
+        return;
+      }
+
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event("change"));
+    });
+  });
+
+  // Handle advanced mode toggle in header
+  const advToggleContainer = document.querySelector(".header-tools .toggle-container");
+  if (advToggleContainer) {
+    advToggleContainer.addEventListener("click", (e) => {
+      const checkbox = advToggleContainer.querySelector('input[type="checkbox"]');
+      if (!checkbox) return;
+
+      if (e.target.closest("input") || e.target.closest(".slider")) {
+        return;
+      }
+
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event("change"));
+    });
+  }
 }
 
 
@@ -427,6 +464,8 @@ async function checkShortcutHighlight() {
 function updatePreview() {
   if (!mockOverlay) return;
 
+  const isDark = darkModeEl.checked;
+
   // Position — always use `top` + `translateY` so CSS can animate between
   // numeric values. Setting `top: auto` or `bottom` breaks transitions because
   // browsers cannot interpolate `auto`.
@@ -464,17 +503,24 @@ function updatePreview() {
 
   mockChips.forEach(chip => {
     const chipText = chip.querySelector(".chip-text");
-    const dot = chip.querySelector(".dot");
-    if (chipMode === "name") {
+    const icon = chip.querySelector(".mock-service-icon");
+    if (chipMode === "logo") {
+      if (chipText) chipText.style.display = "none";
+      if (icon) icon.style.display = "block";
+      chip.style.width = "";
+      chip.style.height = "";
+      chip.style.padding = "";
+      chip.style.borderRadius = "";
+    } else if (chipMode === "name") {
       if (chipText) chipText.style.display = "inline";
-      if (dot) dot.style.display = "none";
+      if (icon) icon.style.display = "none";
       chip.style.width = "";
       chip.style.height = "";
       chip.style.padding = "";
       chip.style.borderRadius = "";
     } else if (chipMode === "logo-name") {
       if (chipText) chipText.style.display = "inline";
-      if (dot) dot.style.display = "block";
+      if (icon) icon.style.display = "block";
       chip.style.width = "";
       chip.style.height = "";
       chip.style.padding = "";
@@ -482,8 +528,13 @@ function updatePreview() {
     }
   });
 
+  // Dynamic ChatGPT icon for theme consistency
+  const chatgptMockIcon = mockOverlay.querySelector("img[src*='chatgpt']");
+  if (chatgptMockIcon) {
+    chatgptMockIcon.src = isDark ? "../icons/chatgpt_light.png" : "../icons/chatgpt_dark.png";
+  }
+
   // Theme
-  const isDark = darkModeEl.checked;
   mockOverlay.style.background = isDark ? "#202124" : "#ffffff";
   mockOverlay.style.color = isDark ? "#e8eaed" : "#202124";
   mockOverlay.style.borderColor = isDark ? "#3c4043" : "#dadce0";
