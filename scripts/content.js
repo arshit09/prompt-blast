@@ -82,7 +82,6 @@ class PromptBlastOverlay {
     this.enabledServiceIds = [];
     this.promptHistory = [];
     this.overlayPosition = "top";
-    this.showToolNames = true;
 
     this.initPromise = this.init();
   }

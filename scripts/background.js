@@ -231,12 +231,6 @@ async function handleMulticast(query) {
     return;
   }
 
-  // Optionally group all new tabs together (Chrome 89+)
-  let groupId = null;
-  if (settings.groupTabs && chrome.tabs.group) {
-    // We'll collect tab IDs and group them after creation
-  }
-
   const tabIds = [];
 
   // Open all tabs in parallel for speed
@@ -249,7 +243,7 @@ async function handleMulticast(query) {
   if (settings.groupTabs && chrome.tabs.group) {
     try {
       const ids = tabs.map((t) => t.id);
-      groupId = await chrome.tabs.group({ tabIds: ids });
+      const groupId = await chrome.tabs.group({ tabIds: ids });
       await chrome.tabGroups.update(groupId, {
         title: "PromptBlast",
         color: "blue",
