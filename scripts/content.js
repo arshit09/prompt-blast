@@ -314,7 +314,19 @@ class PromptBlastOverlay {
 
     const sendBtn = this.shadow.getElementById("sendBtn");
     sendBtn.disabled = true;
+    sendBtn.classList.add("sending");
     promptInput.disabled = true;
+
+    const resetUI = () => {
+      sendBtn.classList.remove("sending");
+      promptInput.disabled = false;
+      this.updateSendButton();
+    };
+
+    // Safety valve: re-enable the UI after 15 s if the callback never fires
+    const abortTimer = setTimeout(() => {
+      resetUI();
+    }, 15000);
 
     await this.saveSettings();
     this.addToHistory(query);
@@ -322,11 +334,11 @@ class PromptBlastOverlay {
     chrome.runtime.sendMessage(
       { action: "multicast", query: query },
       () => {
+        clearTimeout(abortTimer);
         setTimeout(() => {
           this.hide();
           promptInput.value = "";
-          promptInput.disabled = false;
-          this.updateSendButton();
+          resetUI();
         }, 300);
       }
     );
@@ -627,6 +639,8 @@ class PromptBlastOverlay {
       }
       .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); }
       .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+      @keyframes pb-spin { to { transform: rotate(360deg); } }
+      .send-btn.sending svg { animation: pb-spin 0.7s linear infinite; }
 
       .history-section { display: flex; flex-direction: column; gap: 8px; }
       .hidden { display: none; }
