@@ -529,9 +529,15 @@ body {
   flex-shrink: 0;
 }
 
+.num-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .num-input {
   width: 100px;
-  padding: 8px 12px;
+  padding: 8px 32px 8px 12px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -541,10 +547,57 @@ body {
   text-align: center;
   outline: none;
   transition: border-color var(--transition);
+  -moz-appearance: textfield;
+}
+
+.num-input::-webkit-inner-spin-button,
+.num-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .num-input:focus {
   border-color: var(--accent);
+}
+
+.num-spinners {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: 26px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  overflow: hidden;
+}
+
+.num-spin {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition), color var(--transition);
+}
+
+.num-spin:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.num-spin:active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.num-spin.up {
+  border-bottom: 1px solid var(--border);
 }
 
 /* ── Custom Select ─────────────────────────────────────────── */

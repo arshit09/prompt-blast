@@ -131,6 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCustomSelect();
   initChipDisplaySelect();
 
+  // Init custom number spinners
+  initNumSpinners();
+
   // Make setting rows clickable
   initClickableRows();
 
@@ -225,6 +228,27 @@ function updateChipDisplayLabel(val) {
 function updateChipDisplaySelected(val) {
   chipDisplayOptions.querySelectorAll(".option").forEach(opt => {
     opt.classList.toggle("selected", opt.getAttribute("data-value") === val);
+  });
+}
+
+function initNumSpinners() {
+  document.querySelectorAll(".num-spin").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      const baseStep = parseFloat(input.step) || 1;
+      const step = e.altKey ? Math.max(1, baseStep / 10)
+                 : e.shiftKey ? baseStep * 10
+                 : baseStep;
+      const min = parseFloat(input.min);
+      const max = parseFloat(input.max);
+      let val = parseFloat(input.value) || 0;
+      val = btn.classList.contains("up") ? val + step : val - step;
+      if (!isNaN(min)) val = Math.max(min, val);
+      if (!isNaN(max)) val = Math.min(max, val);
+      input.value = val;
+      input.dispatchEvent(new Event("change"));
+    });
   });
 }
 

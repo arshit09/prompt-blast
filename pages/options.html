@@ -184,7 +184,17 @@
             <p class="setting-desc">Wait time (ms) before typing prompt</p>
           </div>
           <div class="input-group">
-            <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
+            <div class="num-input-wrapper">
+              <input type="number" id="delayMs" min="500" max="10000" step="500" value="2000" class="num-input">
+              <div class="num-spinners">
+                <button class="num-spin up" data-target="delayMs" tabindex="-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                </button>
+                <button class="num-spin down" data-target="delayMs" tabindex="-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+              </div>
+            </div>
             <span class="input-suffix">ms</span>
           </div>
         </div>
@@ -195,7 +205,17 @@
             <p class="setting-desc">Max number of recent prompts to save</p>
           </div>
           <div class="input-group">
-            <input type="number" id="historyLimit" min="5" max="100" step="5" value="20" class="num-input">
+            <div class="num-input-wrapper">
+              <input type="number" id="historyLimit" min="5" max="100" step="5" value="20" class="num-input">
+              <div class="num-spinners">
+                <button class="num-spin up" data-target="historyLimit" tabindex="-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+                </button>
+                <button class="num-spin down" data-target="historyLimit" tabindex="-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
