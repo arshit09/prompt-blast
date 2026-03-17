@@ -362,6 +362,13 @@ function renderServices() {
 
     const editorFooter = document.createElement("div");
     editorFooter.className = "selector-editor-footer";
+
+    const testBtn = document.createElement("button");
+    testBtn.className = "selector-test-btn";
+    testBtn.textContent = "Test service";
+    testBtn.title = "Open the service in a background tab and check if selectors resolve";
+    testBtn.addEventListener("click", () => runServiceTest(service, editor, testBtn));
+
     const resetLink = document.createElement("button");
     resetLink.className = "selector-reset";
     resetLink.textContent = "Reset to defaults";
@@ -372,6 +379,7 @@ function renderServices() {
       expandBtn.classList.remove("has-custom");
       save();
     });
+    editorFooter.appendChild(testBtn);
     editorFooter.appendChild(resetLink);
 
     editor.appendChild(inputField);
@@ -417,6 +425,64 @@ function updateCustomSelector(serviceId, editor, expandBtn) {
   }
   save();
 }
+
+/**
+ * Opens the service in a background tab, checks that the configured
+ * selectors resolve, then closes the tab and reports the result.
+ */
+async function runServiceTest(service, editor, btn) {
+  const selectorVal =
+    editor.querySelector(`#sel-input-${service.id}`).value.trim() ||
+    service.selector;
+  const buttonSelVal =
+    editor.querySelector(`#sel-btn-${service.id}`).value.trim() ||
+    service.buttonSel || "";
+
+  btn.disabled = true;
+  btn.className = "selector-test-btn loading";
+  btn.textContent = "Testing…";
+
+  let result;
+  try {
+    result = await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        {
+          action: "testService",
+          url: service.url,
+          selector: selectorVal,
+          buttonSel: buttonSelVal,
+          inputType: service.inputType,
+          waitMs: service.waitMs,
+        },
+        resolve
+      );
+    });
+  } catch (err) {
+    result = { ok: false, error: err.message };
+  }
+
+  if (result?.inputFound) {
+    btn.className = "selector-test-btn success";
+    if (buttonSelVal && result.buttonFound === false) {
+      btn.textContent = "Input ✓  Button ✗";
+    } else if (buttonSelVal && result.buttonFound) {
+      btn.textContent = "Input ✓  Button ✓";
+    } else {
+      btn.textContent = "Input found ✓";
+    }
+  } else {
+    btn.className = "selector-test-btn failure";
+    const msg = result?.error ? result.error.slice(0, 28) : "Not found";
+    btn.textContent = `✗ ${msg}`;
+  }
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.className = "selector-test-btn";
+    btn.textContent = "Test service";
+  }, 4000);
+}
+
 
 /**
  * Escapes a string for use in an HTML attribute value.

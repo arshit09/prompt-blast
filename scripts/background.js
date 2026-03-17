@@ -201,6 +201,46 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // keep message channel open for async sendResponse
   }
 
+  if (message.action === "testService") {
+    (async () => {
+      const { url, selector, buttonSel, waitMs } = message;
+      let tab;
+      try {
+        tab = await chrome.tabs.create({ url, active: false });
+        await waitForTabLoad(tab.id);
+        await ensureContentScript(tab.id);
+        // Wait for the page's dynamic content to render (cap at 5s)
+        await new Promise((r) => setTimeout(r, Math.min(waitMs || 2500, 5000)));
+        const result = await new Promise((resolve) => {
+          const timer = setTimeout(
+            () => resolve({ ok: false, error: "timeout" }),
+            10_000
+          );
+          chrome.tabs.sendMessage(
+            tab.id,
+            { action: "testSelector", selector, buttonSel, inputType: message.inputType },
+            (res) => {
+              clearTimeout(timer);
+              if (chrome.runtime.lastError) {
+                resolve({ ok: false, error: chrome.runtime.lastError.message });
+              } else {
+                resolve(res || { ok: false, error: "No response" });
+              }
+            }
+          );
+        });
+        sendResponse(result);
+      } catch (err) {
+        sendResponse({ ok: false, error: err.message });
+      } finally {
+        if (tab?.id) {
+          try { await chrome.tabs.remove(tab.id); } catch {}
+        }
+      }
+    })();
+    return true;
+  }
+
   if (message.action === "getShortcut") {
     (async () => {
       try {

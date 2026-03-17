@@ -58,6 +58,36 @@ if (!window.PromptBlastListenerAdded) {
       sendResponse({ ok: true });
       return true;
     }
+
+    if (message.action === "testSelector") {
+      (async () => {
+        const { selector, buttonSel, inputType } = message;
+        const inputEl = selector ? document.querySelector(selector) : null;
+        if (!inputEl) {
+          sendResponse({ ok: true, inputFound: false, buttonFound: null });
+          return;
+        }
+        // Type a test string so button-activation logic fires
+        try {
+          if (inputType === "textarea") {
+            fillTextarea(inputEl, "PromptBlast test");
+          } else if (inputType === "prosemirror") {
+            fillProseMirror(inputEl, "PromptBlast test");
+          } else {
+            fillContentEditable(inputEl, "PromptBlast test");
+          }
+        } catch {}
+        // Give the page a moment to react (e.g. enable the send button)
+        await new Promise((r) => setTimeout(r, 600));
+        const buttonEl = buttonSel ? document.querySelector(buttonSel) : null;
+        sendResponse({
+          ok: true,
+          inputFound: true,
+          buttonFound: buttonSel ? !!buttonEl : null,
+        });
+      })();
+      return true;
+    }
   });
   window.PromptBlastListenerAdded = true;
 }

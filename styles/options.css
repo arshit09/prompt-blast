@@ -496,7 +496,44 @@ body {
 
 .selector-editor-footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selector-test-btn {
+  font-size: 0.8rem;
+  font-family: var(--font);
+  font-weight: 500;
+  color: white;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.selector-test-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.selector-test-btn:active {
+  transform: translateY(0);
+}
+
+.selector-test-btn.loading {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
+.selector-test-btn.success {
+  background: var(--green);
+}
+
+.selector-test-btn.failure {
+  background: var(--danger);
 }
 
 .selector-reset {
