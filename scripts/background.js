@@ -122,6 +122,7 @@ async function getSettings() {
     autoSubmit: true,
     groupTabs: true,
     delayMs: 2000,
+    customSelectors: {},
   };
 
   const stored = await chrome.storage.sync.get("settings");
@@ -177,7 +178,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "multicast") {
     console.log("[PromptBlast] Starting multicast for query:", message.query);
     // We await this so the service worker stays alive and we can report completion
-    handleMulticast(message.query).then((results) => {
+    handleMulticast(message.query).then(() => {
       console.log("[PromptBlast] Multicast completed.");
     });
     sendResponse({ ok: true });
@@ -223,15 +224,23 @@ async function handleMulticast(query) {
   const settings = await getSettings();
   const enabledIds = new Set(settings.enabledServices);
 
-  // Filter to only the services the user has turned on
-  const targets = AI_SERVICES.filter((s) => enabledIds.has(s.id));
+  // Filter to only the services the user has turned on, merging any custom selectors
+  const targets = AI_SERVICES
+    .filter((s) => enabledIds.has(s.id))
+    .map((s) => {
+      const custom = settings.customSelectors?.[s.id];
+      if (!custom) return s;
+      return {
+        ...s,
+        ...(custom.selector  ? { selector:   custom.selector  } : {}),
+        ...(custom.buttonSel ? { buttonSel: custom.buttonSel } : {}),
+      };
+    });
 
   if (targets.length === 0) {
     console.warn("[PromptBlast] No services enabled — nothing to do.");
     return;
   }
-
-  const tabIds = [];
 
   // Open all tabs in parallel for speed
   const tabPromises = targets.map((service) =>
@@ -262,17 +271,16 @@ async function handleMulticast(query) {
     chrome.tabs.update(tabs[0].id, { active: true });
 
     // 2. Fire all injections in parallel and track their completion.
-    const injectionPromises = tabs.map((tab, index) => {
+    const injectionPromises = tabs.map(async (tab, index) => {
       const service = targets[index];
-      return waitForTabLoad(tab.id)
-        .then(() => ensureContentScript(tab.id))
-        .then(() => {
-          console.log(`[PromptBlast] Injecting into ${service.name}...`);
-          return injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
-        })
-        .catch((err) => {
-          console.warn(`[PromptBlast] Pipeline failed for ${service.name}:`, err);
-        });
+      try {
+        await waitForTabLoad(tab.id);
+        await ensureContentScript(tab.id);
+        console.log(`[PromptBlast] Injecting into ${service.name}...`);
+        return await injectQuery(tab.id, service, query, settings.autoSubmit, settings.delayMs ?? service.waitMs);
+      } catch (err) {
+        console.warn(`[PromptBlast] Pipeline failed for ${service.name}:`, err);
+      }
     });
 
     // 4. Wait until every tab has finished its work (keeps the service worker alive).

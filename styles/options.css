@@ -364,18 +364,155 @@ body {
 
 .service-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
+  flex-direction: column;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  transition: all var(--transition);
-  cursor: pointer;
+  transition: border-color var(--transition);
+  overflow: hidden;
 }
 
-.service-item:hover {
+.service-item:has(.selector-editor.open) {
+  border-color: var(--accent);
+}
+
+.service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.service-row:hover {
   background: var(--bg-tertiary);
+}
+
+.service-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.expand-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.expand-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.expand-btn svg {
+  transition: transform var(--transition);
+}
+
+.expand-btn.open svg {
+  transform: rotate(180deg);
+}
+
+.expand-btn.open {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* Dot indicator when a service has custom selectors */
+.expand-btn.has-custom::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* ── Selector Editor ───────────────────────────────────────── */
+.selector-editor {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.selector-editor.open {
+  display: flex;
+}
+
+.selector-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.selector-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selector-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: "SF Mono", "Consolas", "Roboto Mono", monospace;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.selector-input:focus {
+  border-color: var(--accent);
+}
+
+.selector-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.selector-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.selector-reset {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-family: var(--font);
+  transition: color var(--transition);
+}
+
+.selector-reset:hover {
+  color: var(--danger);
 }
 
 .service-info {

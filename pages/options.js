@@ -49,6 +49,7 @@ const mockHistory = document.getElementById("mockHistory");
 // ── State ────────────────────────────────────────────────────
 let allServices = [];
 let enabledServiceIds = [];
+let customSelectors = {}; // { [serviceId]: { selector?, buttonSel? } }
 
 // ── Default Settings ─────────────────────────────────────────
 const DEFAULTS = {
@@ -61,6 +62,7 @@ const DEFAULTS = {
   overlayPosition: "top",
   chipDisplay: "logo-name",
   theme: "dark",
+  customSelectors: {},
 };
 
 // ── Initialization ───────────────────────────────────────────
@@ -77,6 +79,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const settings = { ...DEFAULTS, ...(stored.settings || {}) };
 
   enabledServiceIds = settings.enabledServices;
+  customSelectors = settings.customSelectors || {};
   autoSubmitEl.checked = settings.autoSubmit;
   groupTabsEl.checked = settings.groupTabs;
   delayMsEl.value = settings.delayMs;
@@ -280,6 +283,10 @@ function renderServices() {
     const item = document.createElement("div");
     item.className = "service-item";
 
+    // ── Main row ──────────────────────────────────────────────
+    const row = document.createElement("div");
+    row.className = "service-row";
+
     const info = document.createElement("div");
     info.className = "service-info";
     const isDark = document.documentElement.dataset.theme === "dark";
@@ -291,6 +298,18 @@ function renderServices() {
         <p class="url">${service.url}</p>
       </div>
     `;
+
+    const controls = document.createElement("div");
+    controls.className = "service-controls";
+
+    // Expand / selector-editor toggle button
+    const expandBtn = document.createElement("button");
+    expandBtn.className = "expand-btn";
+    expandBtn.title = "Custom CSS selectors";
+    expandBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+    const hasCustom = customSelectors[service.id] &&
+      (customSelectors[service.id].selector || customSelectors[service.id].buttonSel);
+    if (hasCustom) expandBtn.classList.add("has-custom");
 
     const toggle = document.createElement("label");
     toggle.className = "toggle";
@@ -305,20 +324,105 @@ function renderServices() {
     toggle.appendChild(checkbox);
     toggle.appendChild(slider);
 
-    item.appendChild(info);
+    controls.appendChild(expandBtn);
+    controls.appendChild(toggle);
+    row.appendChild(info);
+    row.appendChild(controls);
 
-    item.appendChild(toggle);
-
-    // Entire row click toggles the service
-    item.addEventListener("click", (e) => {
-      // Don't toggle if clicking the toggle switch itself
-      if (e.target.closest(".toggle")) return;
+    // Row click toggles the service (not expand btn or toggle)
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".toggle") || e.target.closest(".expand-btn")) return;
       checkbox.checked = !checkbox.checked;
       toggleService(service.id, checkbox.checked);
     });
 
+    // ── Selector editor (collapsible) ─────────────────────────
+    const editor = document.createElement("div");
+    editor.className = "selector-editor";
+
+    const custom = customSelectors[service.id] || {};
+
+    const inputField = document.createElement("div");
+    inputField.className = "selector-field";
+    inputField.innerHTML = `
+      <label for="sel-input-${service.id}">Input selector</label>
+      <input class="selector-input" id="sel-input-${service.id}" type="text"
+        placeholder="${escapeAttr(service.selector)}"
+        value="${escapeAttr(custom.selector || '')}" />
+    `;
+
+    const btnField = document.createElement("div");
+    btnField.className = "selector-field";
+    btnField.innerHTML = `
+      <label for="sel-btn-${service.id}">Submit button selector</label>
+      <input class="selector-input" id="sel-btn-${service.id}" type="text"
+        placeholder="${escapeAttr(service.buttonSel || 'Not applicable')}"
+        value="${escapeAttr(custom.buttonSel || '')}" />
+    `;
+
+    const editorFooter = document.createElement("div");
+    editorFooter.className = "selector-editor-footer";
+    const resetLink = document.createElement("button");
+    resetLink.className = "selector-reset";
+    resetLink.textContent = "Reset to defaults";
+    resetLink.addEventListener("click", () => {
+      delete customSelectors[service.id];
+      editor.querySelector(`#sel-input-${service.id}`).value = "";
+      editor.querySelector(`#sel-btn-${service.id}`).value = "";
+      expandBtn.classList.remove("has-custom");
+      save();
+    });
+    editorFooter.appendChild(resetLink);
+
+    editor.appendChild(inputField);
+    editor.appendChild(btnField);
+    editor.appendChild(editorFooter);
+
+    // Save on blur (matches existing num-input / change pattern)
+    editor.querySelector(`#sel-input-${service.id}`).addEventListener("change", () => {
+      updateCustomSelector(service.id, editor, expandBtn);
+    });
+    editor.querySelector(`#sel-btn-${service.id}`).addEventListener("change", () => {
+      updateCustomSelector(service.id, editor, expandBtn);
+    });
+
+    // Expand button toggles the editor panel
+    expandBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = editor.classList.toggle("open");
+      expandBtn.classList.toggle("open", isOpen);
+    });
+
+    item.appendChild(row);
+    item.appendChild(editor);
     serviceListEl.appendChild(item);
   });
+}
+
+/**
+ * Reads custom selector inputs for a service, updates state, and saves.
+ */
+function updateCustomSelector(serviceId, editor, expandBtn) {
+  const selectorVal = editor.querySelector(`#sel-input-${serviceId}`).value.trim();
+  const buttonSelVal = editor.querySelector(`#sel-btn-${serviceId}`).value.trim();
+
+  if (selectorVal || buttonSelVal) {
+    customSelectors[serviceId] = {};
+    if (selectorVal) customSelectors[serviceId].selector = selectorVal;
+    if (buttonSelVal) customSelectors[serviceId].buttonSel = buttonSelVal;
+    expandBtn.classList.add("has-custom");
+  } else {
+    delete customSelectors[serviceId];
+    expandBtn.classList.remove("has-custom");
+  }
+  save();
+}
+
+/**
+ * Escapes a string for use in an HTML attribute value.
+ */
+function escapeAttr(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 }
 
 
@@ -352,6 +456,7 @@ async function save() {
     showRecents: showRecentsEl.checked,
     overlayPosition: overlayPositionEl.value,
     chipDisplay: showToolNamesEl.value,
+    customSelectors,
   };
 
   await chrome.storage.sync.set({ settings });
