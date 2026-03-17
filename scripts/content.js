@@ -252,7 +252,6 @@ class PromptBlastOverlay {
   show() {
     this.visible = true;
     this.container.style.display = "flex";
-    this.updateShortcutHint();
     setTimeout(() => {
       const input = this.shadow.getElementById("promptInput");
       input.focus();
