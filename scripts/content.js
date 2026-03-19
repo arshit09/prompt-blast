@@ -681,7 +681,7 @@ class PromptBlastOverlay {
         background: var(--accent); color: #fff; transition: all var(--transition);
         flex-shrink: 0;
       }
-      .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); }
+      .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
       .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
       .history-section { display: flex; flex-direction: column; gap: 8px; }

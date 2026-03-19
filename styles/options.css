@@ -515,7 +515,6 @@ body {
 
 .selector-test-btn:hover {
   background: var(--accent-hover);
-  transform: translateY(-1px);
 }
 
 .selector-test-btn:active {
@@ -930,7 +929,6 @@ body {
 
 .btn-action:hover {
   background: var(--accent-hover);
-  transform: translateY(-1px);
 }
 
 .shortcut-help {
@@ -1191,8 +1189,6 @@ body {
 
 .btn-danger-filled:hover {
   background: var(--danger-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(217, 48, 37, 0.3);
 }
 
 .btn-danger-filled:active {

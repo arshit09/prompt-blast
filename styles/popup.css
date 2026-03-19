@@ -307,7 +307,6 @@ textarea::placeholder {
 
 .send-btn:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 2px 10px rgba(251, 146, 60, 0.35);
 }
 
 .send-btn:disabled {
