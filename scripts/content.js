@@ -176,7 +176,7 @@ class PromptBlastOverlay {
     this.enabledServiceIds = settings.enabledServices || ["chatgpt", "claude", "gemini"];
 
     // Apply saved theme to the shadow host
-    applyTheme(this.container, settings.theme || "light");
+    applyTheme(this.container, settings.theme || "dark");
 
     // Load history (handle legacy plain-string format)
     const historyData = await chrome.storage.local.get("promptHistory");
@@ -185,7 +185,7 @@ class PromptBlastOverlay {
     );
     this.historyLimit = settings.historyLimit || MAX_HISTORY;
     this.showRecents = settings.showRecents !== false;
-    this.overlayPosition = settings.overlayPosition || "top";
+    this.overlayPosition = settings.overlayPosition || "center";
     this.chipDisplay = settings.chipDisplay || "logo-name";
     this.applyPosition();
   }
@@ -683,8 +683,6 @@ class PromptBlastOverlay {
       }
       .send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); }
       .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-      @keyframes pb-spin { to { transform: rotate(360deg); } }
-      .send-btn.sending svg { animation: pb-spin 0.7s linear infinite; }
 
       .history-section { display: flex; flex-direction: column; gap: 8px; }
       .hidden { display: none; }
