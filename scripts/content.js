@@ -693,7 +693,11 @@ class PromptBlastOverlay {
       .history-section { display: flex; flex-direction: column; gap: 8px; }
       .hidden { display: none; }
       .history-label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); }
-      .history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+      .history-list { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; }
+      .history-list::-webkit-scrollbar { width: 4px; }
+      .history-list::-webkit-scrollbar-track { background: transparent; }
+      .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+      .history-list::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
       .history-item {
         display: flex; align-items: center; gap: 8px;
         padding: 8px 12px 8px 16px; border-radius: var(--radius-sm);

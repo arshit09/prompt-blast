@@ -342,7 +342,8 @@ textarea::placeholder {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4px;
-  overflow: hidden;
+  max-height: calc(3 * 32px + 2 * 2px + 8px);
+  overflow-y: auto;
 }
 
 .history-list li {
@@ -424,4 +425,7 @@ textarea::placeholder {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+::-webkit-scrollbar-button {
+  display: none;
 }
