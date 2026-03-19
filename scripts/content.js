@@ -275,9 +275,15 @@ class PromptBlastOverlay {
     }
   }
 
-  show() {
+  async show() {
     this.visible = true;
     this.container.style.display = "flex";
+    // Refresh history from storage each time the overlay opens
+    const historyData = await chrome.storage.local.get("promptHistory");
+    this.promptHistory = (historyData.promptHistory || []).map((h) =>
+      typeof h === "string" ? { text: h, timestamp: Date.now() } : h
+    );
+    this.renderHistory();
     setTimeout(() => {
       const input = this.shadow.getElementById("promptInput");
       input.focus();
@@ -381,8 +387,8 @@ class PromptBlastOverlay {
     this.promptHistory = this.promptHistory.filter((h) => h.text !== query);
     this.promptHistory.unshift({ text: query, timestamp: Date.now() });
     this.promptHistory = this.promptHistory.slice(0, this.historyLimit || MAX_HISTORY);
+    // Persist (don't re-render now — history updates on next open)
     chrome.storage.local.set({ promptHistory: this.promptHistory });
-    this.renderHistory();
   }
 
   deleteFromHistory(prompt) {

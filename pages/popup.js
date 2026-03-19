@@ -186,9 +186,8 @@ function addToHistory(query) {
   promptHistory.unshift(query);
   // Cap length
   promptHistory = promptHistory.slice(0, MAX_HISTORY);
-  // Persist
+  // Persist (don't re-render now — history updates on next popup open)
   chrome.storage.local.set({ promptHistory });
-  renderHistory();
 }
 
 
