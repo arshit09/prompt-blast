@@ -140,11 +140,6 @@ class PuchneOverlay {
     this.shadow = this.container.attachShadow({ mode: "closed" });
 
     // 3. Inject CSS
-    const fontLink = document.createElement("link");
-    fontLink.rel = "stylesheet";
-    fontLink.href = "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap";
-    this.shadow.appendChild(fontLink);
-
     const style = document.createElement("style");
     style.textContent = this.getStyles();
     this.shadow.appendChild(style);
@@ -585,7 +580,7 @@ class PuchneOverlay {
         --radius:       14px;
         --radius-sm:    8px;
         --transition:   200ms ease;
-        --font: "Roboto", "Google Sans", system-ui, sans-serif;
+        --font: system-ui, -apple-system, sans-serif;
       }
 
       :host([data-theme="dark"]) {
@@ -958,7 +953,7 @@ function fillContentEditable(el, query) {
 /**
  * Fills a ProseMirror-based editor (used by ChatGPT).
  * ProseMirror doesn't respond to simple value changes;
- * we simulate keyboard input via execCommand or DataTransfer.
+ * we simulate keyboard input via DataTransfer.
  */
 function fillProseMirror(el, query) {
   try {
@@ -977,19 +972,8 @@ function fillProseMirror(el, query) {
     selection.removeAllRanges();
     selection.addRange(range);
 
-    // Method 1: Use execCommand (best for ProseMirror/React/Claude)
-    try {
-      // Deleting existing selection ensures the framework "sees" the change
-      document.execCommand("delete", false, null);
-      document.execCommand("insertText", false, query);
-    } catch (e) {
-      console.warn("[Puchne] execCommand failed, falling back...");
-      // Manual fallback if execCommand is blocked
-      el.textContent = query;
-    }
-
-    // Method 2: Use DataTransfer (clipboard-like paste) if execCommand didn't fill it
-    if (!el.textContent || el.textContent.trim() === "") {
+    // Method 1: Use DataTransfer (clipboard-like paste)
+    {
       const dataTransfer = new DataTransfer();
       dataTransfer.setData("text/plain", query);
 
@@ -1004,7 +988,7 @@ function fillProseMirror(el, query) {
       el.dispatchEvent(pasteEvent);
     }
 
-    // Method 3: Final fallback to setting text manually + events
+    // Method 2: Final fallback to setting text manually + events
     if (!el.textContent || el.textContent.trim() === "") {
       el.textContent = query;
       el.dispatchEvent(new InputEvent("input", {
@@ -1290,7 +1274,7 @@ class LoginNoticeOverlay {
         width: 100%;
         height: 100%;
         z-index: 2147483647;
-        font-family: "Roboto", "Google Sans", system-ui, sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         display: none;
       }
       .overlay-backdrop {

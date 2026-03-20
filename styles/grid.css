@@ -17,7 +17,7 @@
   --border: #dadce0;
   --radius: 14px;
   --radius-sm: 8px;
-  --font: "Roboto", "Google Sans", system-ui, sans-serif;
+  --font: system-ui, -apple-system, sans-serif;
 }
 
 [data-theme="dark"] {

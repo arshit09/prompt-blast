@@ -26,7 +26,7 @@
   --radius-sm: 8px;
   --radius-xs: 6px;
   --transition: 180ms ease;
-  --font: "Roboto", "Google Sans", system-ui, sans-serif;
+  --font: system-ui, -apple-system, sans-serif;
 }
 
 [data-theme="dark"] {
