@@ -160,7 +160,10 @@ class PuchneOverlay {
   async loadData() {
     // Fetch services from background
     const response = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: "getServices" }, resolve);
+      chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
+        if (chrome.runtime.lastError) { resolve(null); return; }
+        resolve(res);
+      });
     });
     this.allServices = response?.services || [];
 
@@ -384,6 +387,10 @@ class PuchneOverlay {
       { action: "multicast", query: query },
       () => {
         clearTimeout(abortTimer);
+        if (chrome.runtime.lastError) {
+          resetUI();
+          return;
+        }
         setTimeout(() => {
           this.hide();
           promptInput.value = "";
@@ -473,7 +480,10 @@ class PuchneOverlay {
     // Read the real shortcut from Chrome (via background script)
     try {
       const response = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: "getShortcut" }, resolve);
+        chrome.runtime.sendMessage({ action: "getShortcut" }, (res) => {
+          if (chrome.runtime.lastError) { resolve(null); return; }
+          resolve(res);
+        });
       });
       
       if (response?.shortcut) {

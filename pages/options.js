@@ -82,6 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Fetch service registry from the background worker
   allServices = await new Promise((resolve) => {
     chrome.runtime.sendMessage({ action: "getServices" }, (res) => {
+      if (chrome.runtime.lastError) { resolve([]); return; }
       resolve(res?.services || []);
     });
   });
@@ -537,7 +538,10 @@ async function runServiceTest(service, editor, btn) {
           inputType: service.inputType,
           waitMs: service.waitMs,
         },
-        resolve
+        (res) => {
+          if (chrome.runtime.lastError) { resolve({ ok: false, error: chrome.runtime.lastError.message }); return; }
+          resolve(res);
+        }
       );
     });
   } catch (err) {
@@ -590,11 +594,21 @@ function toggleService(id, enabled) {
 
 // ── Persistence ──────────────────────────────────────────────
 
+let _saveTimer;
+
 /**
- * Saves all current settings to chrome.storage.sync
- * and shows a confirmation toast.
+ * Debounced entry point — batches rapid successive saves into one
+ * chrome.storage.sync.set call after a short idle period.
  */
-async function save() {
+function save() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_doSave, 300);
+}
+
+/**
+ * Performs the actual write to chrome.storage.sync and trims history.
+ */
+async function _doSave() {
   const settings = {
     enabledServices: enabledServiceIds,
     autoSubmit: autoSubmitEl.checked,

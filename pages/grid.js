@@ -178,7 +178,10 @@ function initResize(cellObj, dir, startX, startY) {
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseup", onUp);
     removeOverlay(overlay);
-    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs } });
+    const cellOrder = [...cellMap]
+      .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
+      .map(c => c.service.id);
+    chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
   }
 
   document.addEventListener("mousemove", onMove);
@@ -271,6 +274,12 @@ function initDrag(cellObj, startX, startY) {
       // Update resize handle visibility for both cells
       refreshHandles(cellObj);
       refreshHandles(dropTarget);
+
+      // Persist new cell order
+      const cellOrder = [...cellMap]
+        .sort((a, b) => a.row * cols + a.col - (b.row * cols + b.col))
+        .map(c => c.service.id);
+      chrome.storage.local.set({ gridLayout: { cols, rows, colFracs, rowFracs, cellOrder } });
     } else {
       // Snap back — just re-place in grid
       placeCellInGrid(cellObj);
@@ -314,7 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const query         = gridData.query || "";
-  const targets       = gridData.targets;
+  let   targets       = gridData.targets;
   const autoSubmit    = gridData.autoSubmit;
   const cookieConsent = gridData.cookieConsent || "accept";
   const delayMs       = gridData.delayMs;
@@ -340,6 +349,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       Array.isArray(saved.rowFracs) && saved.rowFracs.length === rows) {
     colFracs = saved.colFracs;
     rowFracs = saved.rowFracs;
+    // Restore cell order if saved and valid
+    if (Array.isArray(saved.cellOrder) && saved.cellOrder.length === targets.length) {
+      const byId = Object.fromEntries(targets.map(t => [t.id, t]));
+      const reordered = saved.cellOrder.map(id => byId[id]).filter(Boolean);
+      if (reordered.length === targets.length) targets = reordered;
+    }
   }
 
   updateGridTemplate();
